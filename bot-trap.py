@@ -1,8 +1,12 @@
 # Modules needed to run bot
 import discord
 from discord.ext import commands
-import re
 from datetime import datetime, timedelta
+import os
+import re
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Sets the specific permissions this bot needs in order to function
 intents = discord.Intents.default()
@@ -12,8 +16,11 @@ intents.members = True
 # Sets the command prefix, by default it's set to "~"
 bot = commands.Bot(command_prefix="~", intents=intents)
 
-# Absurdly ugly regex to detect discord links even if they have special characters between each letter, this can absolutely be improved
-invite_regex = re.compile(r"(d[^\w\s]*i[^\w\s]*s[^\w\s]*c[^\w\s]*o[^\w\s]*r[^\w\s]*d[^\w\s]*\.[^\w\s]*g[^\w\s]*g[^\w\s]*/|d[^\w\s]*i[^\w\s]*s[^\w\s]*c[^\w\s]*o[^\w\s]*r[^\w\s]*d[^\w\s]*\.[^\w\s]*c[^\w\s]*o[^\w\s]*m[^\w\s]*/[^\w\s]*i[^\w\s]*n[^\w\s]*v[^\w\s]*i[^\w\s]*t[^\w\s]*e[^\w\s]*/[^\w\s]*)", re.IGNORECASE)
+_STRIP = re.compile(r'[^\w/]')
+
+def contains_discord_invite(text: str) -> bool:
+    normalized = _STRIP.sub('', text.lower())
+    return 'discordgg/' in normalized or 'discordcom/invite/' in normalized
 
 # ---=+ BUTTONS +=---
 class ModView(discord.ui.View):
@@ -76,7 +83,7 @@ async def on_message(message):
     if any(role.id in exempt for role in message.author.roles):
         return
 
-    if invite_regex.search(message.content):
+    if contains_discord_invite(message.content):
         member = message.author
 
         # Timeout for 1 hour
@@ -130,4 +137,4 @@ async def ping(ctx):
    await ctx.send("The Bot Trap is Online!")
 
 # ---=+ RUN +=---
-bot.run("your bot token here")
+bot.run(os.getenv("DISCORD_TOKEN"))
